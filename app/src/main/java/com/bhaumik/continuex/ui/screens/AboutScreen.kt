@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -164,6 +166,228 @@ fun AboutContent(modifier: Modifier = Modifier) {
         )
 
         Spacer(modifier = Modifier.height(32.dp))
+        
+        // --- ADVANCED SETTINGS ---
+        var showSettings by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        val sharedPrefs = context.getSharedPreferences("continuex_prefs", android.content.Context.MODE_PRIVATE)
+        
+        var provider by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(sharedPrefs.getString("continuex_provider", "groq") ?: "groq") }
+        var apiKey by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(sharedPrefs.getString("continuex_api_key", "") ?: "") }
+        var selectedModel by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(sharedPrefs.getString("continuex_model", "llama-3.3-70b-versatile") ?: "llama-3.3-70b-versatile") }
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier
+                    .clickable { showSettings = !showSettings }
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "\u2699 Advanced Settings",
+                    color = Color(0xFF334155),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            androidx.compose.animation.AnimatedVisibility(
+                visible = showSettings,
+                enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                        .background(CardBackground, RoundedCornerShape(12.dp))
+                        .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                        .padding(20.dp)
+                ) {
+                    Text(
+                        text = "Use Your Own API Key",
+                        color = White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "By default CONTINUE-X uses built-in AI. Add your own key to use your preferred model.",
+                        color = Color(0xFF64748B),
+                        fontSize = 12.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Provider Tabs
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(BackgroundDark, RoundedCornerShape(8.dp))
+                            .padding(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(if (provider == "groq") CardBorder else Color.Transparent, RoundedCornerShape(6.dp))
+                                .clickable { provider = "groq"; selectedModel = "llama-3.3-70b-versatile" }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Groq", color = if (provider == "groq") White else TextGray, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .background(if (provider == "openai") CardBorder else Color.Transparent, RoundedCornerShape(6.dp))
+                                .clickable { provider = "openai"; selectedModel = "gpt-4o-mini" }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("OpenAI", color = if (provider == "openai") White else TextGray, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // API Key Input
+                    Text(
+                        text = "${if (provider == "groq") "Groq" else "OpenAI"} API Key",
+                        color = TextGray,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = apiKey,
+                        onValueChange = { apiKey = it },
+                        placeholder = { Text(if (provider == "groq") "gsk_..." else "sk-...", color = Color(0xFF334155)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = BackgroundDark,
+                            unfocusedContainerColor = BackgroundDark,
+                            focusedBorderColor = AccentIndigo,
+                            unfocusedBorderColor = CardBorder,
+                            focusedTextColor = White,
+                            unfocusedTextColor = White
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Model Dropdown
+                    Text(
+                        text = "Model",
+                        color = TextGray,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    var expanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+                    val models = if (provider == "groq") {
+                        listOf("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768")
+                    } else {
+                        listOf("gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo")
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = selectedModel,
+                            onValueChange = {},
+                            readOnly = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { expanded = true },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = BackgroundDark,
+                                unfocusedContainerColor = BackgroundDark,
+                                disabledContainerColor = BackgroundDark,
+                                disabledBorderColor = CardBorder,
+                                disabledTextColor = White
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            enabled = false
+                        )
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.background(CardBackground)
+                        ) {
+                            models.forEach { m ->
+                                DropdownMenuItem(
+                                    text = { Text(m, color = White) },
+                                    onClick = {
+                                        selectedModel = m
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                        Box(modifier = Modifier.matchParentSize().clickable { expanded = true })
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Get free ${if (provider == "groq") "Groq" else "OpenAI"} API key \u2192",
+                        color = AccentIndigo,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            val url = if (provider == "groq") "https://console.groq.com" else "https://platform.openai.com"
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                sharedPrefs.edit().clear().apply()
+                                apiKey = ""
+                                provider = "groq"
+                                selectedModel = "llama-3.3-70b-versatile"
+                                android.widget.Toast.makeText(context, "Reset to default", android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Clear & Default", color = TextGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                sharedPrefs.edit()
+                                    .putString("continuex_provider", provider)
+                                    .putString("continuex_api_key", apiKey)
+                                    .putString("continuex_model", selectedModel)
+                                    .apply()
+                                android.widget.Toast.makeText(context, "Settings saved", android.widget.Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentIndigo),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Save Settings", color = White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(48.dp))
 
         // Privacy Section
         Row(

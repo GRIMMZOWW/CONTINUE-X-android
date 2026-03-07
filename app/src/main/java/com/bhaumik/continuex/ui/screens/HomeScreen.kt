@@ -1,5 +1,7 @@
 package com.bhaumik.continuex.ui.screens
 
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import kotlinx.coroutines.launch
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -16,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,12 +44,14 @@ fun HomeScreen(
     val chatText by viewModel.chatText.collectAsStateWithLifecycle()
     val selectedStyle by viewModel.selectedStyle.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundDark)
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -144,9 +149,32 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 4. Generate Button
+        // 4. Custom API Indicator
+        val sharedPrefs = context.getSharedPreferences("continuex_prefs", android.content.Context.MODE_PRIVATE)
+        val hasCustomKey = !sharedPrefs.getString("continuex_api_key", "").isNullOrEmpty()
+        
+        if (hasCustomKey) {
+            Text(
+                text = "Using your own API key",
+                color = Color(0xFFF59E0B),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        // 5. Generate Button
         Button(
-            onClick = { viewModel.generateCapsule() },
+            onClick = {
+                val settingsProvider = sharedPrefs.getString("continuex_provider", "groq")
+                val settingsKey = sharedPrefs.getString("continuex_api_key", "")
+                val settingsModel = sharedPrefs.getString("continuex_model", "")
+                viewModel.generateCapsule(
+                    customApiKey = if (settingsKey.isNullOrEmpty()) null else settingsKey,
+                    customProvider = settingsProvider,
+                    customModel = if (settingsKey.isNullOrEmpty()) null else settingsModel
+                )
+            },
             modifier = Modifier.fillMaxWidth().height(56.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = AccentIndigo,
@@ -218,27 +246,234 @@ fun HomeScreen(
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    // 6. Copy Button
-                    Button(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("Capsule", (uiState as UiState.Success).capsule)
-                            clipboard.setPrimaryClip(clip)
-                            copied = true
-                            Handler(Looper.getMainLooper()).postDelayed({ copied = false }, 2000)
-                        },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                        shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, AccentIndigo)
+                    // 6. Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text(
-                            text = if (copied) "\u2713 Copied!" else "Copy Capsule",
-                            color = if (copied) SuccessGreen else AccentIndigo,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        // Download Button
+                        Button(
+                            onClick = {
+                                val capsuleText = (uiState as UiState.Success).capsule
+                                val filename = "continuex-capsule-${System.currentTimeMillis()}.txt"
+                                
+                                val contentValues = android.content.ContentValues().apply {
+                                    put(android.provider.MediaStore.Downloads.DISPLAY_NAME, filename)
+                                    put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain")
+                                    put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+                                }
+                                
+                                val resolver = context.contentResolver
+                                val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                                
+                                uri?.let {
+                                    resolver.openOutputStream(it)?.use { outputStream ->
+                                        outputStream.write(capsuleText.toByteArray())
+                                    }
+                                    
+                                    contentValues.clear()
+                                    contentValues.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                                    resolver.update(it, contentValues, null, null)
+                                    
+                                    android.widget.Toast.makeText(context, "Capsule saved to Downloads", android.widget.Toast.LENGTH_SHORT).show()
+                                } ?: run {
+                                    android.widget.Toast.makeText(context, "Failed to save capsule", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, TextGray)
+                        ) {
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Default.Download,
+                                contentDescription = "Download Capsule",
+                                tint = TextGray,
+                                modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                            )
+                            Text(
+                                text = "Download Capsule",
+                                color = TextGray,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        // Copy Button
+                        Button(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("Capsule", (uiState as UiState.Success).capsule)
+                                clipboard.setPrimaryClip(clip)
+                                copied = true
+                                Handler(Looper.getMainLooper()).postDelayed({ copied = false }, 2000)
+                            },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AccentIndigo)
+                        ) {
+                            Text(
+                                text = if (copied) "\u2713 Copied!" else "Copy Capsule",
+                                color = if (copied) SuccessGreen else AccentIndigo,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    // 7. Smart Resume Prompt Box
+                    val resumePrompt by viewModel.resumePrompt.collectAsStateWithLifecycle()
+                    
+                    AnimatedVisibility(
+                        visible = resumePrompt.isNotBlank(),
+                        enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(500)),
+                        exit = androidx.compose.animation.fadeOut()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 24.dp)
+                        ) {
+                            Text(
+                                text = "SMART RESUME PROMPT \u2728",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                            Text(
+                                text = "Paste this into your new AI chat",
+                                color = TextGray,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                            
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(AccentIndigo.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                                    .border(1.dp, AccentIndigo.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            ) {
+                                Text(
+                                    text = resumePrompt,
+                                    color = Color.White,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 13.sp,
+                                    modifier = Modifier
+                                        .padding(16.dp)
+                                        .fillMaxWidth()
+                                        .heightIn(max = 200.dp)
+                                        .verticalScroll(rememberScrollState())
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            var promptCopied by remember { mutableStateOf(false) }
+                            
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                // Download Prompt Button
+                                Button(
+                                    onClick = {
+                                        val filename = "continuex-prompt-${System.currentTimeMillis()}.txt"
+                                        val contentValues = android.content.ContentValues().apply {
+                                            put(android.provider.MediaStore.Downloads.DISPLAY_NAME, filename)
+                                            put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/plain")
+                                            put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+                                        }
+                                        
+                                        val resolver = context.contentResolver
+                                        val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                                        
+                                        uri?.let {
+                                            resolver.openOutputStream(it)?.use { outputStream ->
+                                                outputStream.write(resumePrompt.toByteArray())
+                                            }
+                                            contentValues.clear()
+                                            contentValues.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                                            resolver.update(it, contentValues, null, null)
+                                            
+                                            android.widget.Toast.makeText(context, "Prompt saved to Downloads", android.widget.Toast.LENGTH_SHORT).show()
+                                        } ?: run {
+                                            android.widget.Toast.makeText(context, "Failed to save prompt", android.widget.Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f).height(48.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, TextGray)
+                                ) {
+                                    Icon(
+                                        imageVector = androidx.compose.material.icons.Icons.Default.Download,
+                                        contentDescription = "Download Prompt",
+                                        tint = TextGray,
+                                        modifier = Modifier.size(18.dp).padding(end = 4.dp)
+                                    )
+                                    Text(
+                                        text = "Download Prompt",
+                                        color = TextGray,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp
+                                    )
+                                }
+
+                                // Copy Prompt Button
+                                Button(
+                                    onClick = {
+                                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                        val clip = ClipData.newPlainText("Resume Prompt", resumePrompt)
+                                        clipboard.setPrimaryClip(clip)
+                                        promptCopied = true
+                                        Handler(Looper.getMainLooper()).postDelayed({ promptCopied = false }, 2000)
+                                    },
+                                    modifier = Modifier.weight(1f).height(48.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentIndigo)
+                                ) {
+                                    Text(
+                                        text = if (promptCopied) "\u2713 Copied!" else "Copy Prompt",
+                                        color = if (promptCopied) SuccessGreen else AccentIndigo,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
+            } // end of inner Column
+        } // end of main AnimatedVisibility
+
+        // 6. New Capsule (Start Over) Button
+        AnimatedVisibility(
+            visible = uiState is UiState.Success || uiState is UiState.Error,
+            modifier = Modifier.padding(top = 24.dp)
+        ) {
+            OutlinedButton(
+                onClick = {
+                    viewModel.resetState()
+                    coroutineScope.launch {
+                        scrollState.animateScrollTo(0)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = AccentIndigo
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, AccentIndigo)
+            ) {
+                Text(
+                    text = "Start New Capsule", 
+                    fontWeight = FontWeight.Bold, 
+                    fontSize = 16.sp
+                )
             }
         }
 

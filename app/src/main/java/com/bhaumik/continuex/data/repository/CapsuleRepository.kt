@@ -9,7 +9,13 @@ import com.bhaumik.continuex.data.api.RetrofitClient
 class CapsuleRepository(
     private val apiService: ApiService = RetrofitClient.apiService
 ) {
-    suspend fun generateCapsule(chatText: String, style: String): Result<String> {
+    suspend fun generateCapsule(
+        chatText: String, 
+        style: String,
+        customApiKey: String? = null,
+        customProvider: String? = null,
+        customModel: String? = null
+    ): Result<String> {
         return try {
             val safeStyle = when (style.lowercase().trim()) {
                 "brief" -> "brief"
@@ -20,30 +26,64 @@ class CapsuleRepository(
 
             val request = GenerateRequest(
                 chatText = chatText,
-                style = safeStyle
+                style = safeStyle,
+                customApiKey = if (!customApiKey.isNullOrEmpty()) customApiKey else null,
+                customProvider = if (!customApiKey.isNullOrEmpty()) customProvider else null,
+                customModel = if (!customApiKey.isNullOrEmpty()) customModel else null
             )
             
-            Log.d("CONTINUEX", "Sending request - style: ${request.style}")
-            Log.d("CONTINUEX", "Chat text length: ${request.chatText.length}")
-            Log.d("CONTINUEX", "Chat text preview: ${request.chatText.take(100)}")
-            Log.d("CONTINUEX", "Full Request JSON: ${Gson().toJson(request)}")
+            Log.d("CONTINUEX", "Sending request with style: ${request.style}")
+            Log.d("CONTINUEX", "Using custom key: ${!customApiKey.isNullOrEmpty()}")
             
-            val response = apiService.generateCapsule(request)
+            val response = apiService.generateCapsule("api/generate", null, request)
             Log.d("CONTINUEX", "Response code: ${response.code()}")
             
             if (response.isSuccessful) {
-                val body = response.body()
-                Log.d("CONTINUEX", "Response body: $body")
-                if (body?.capsule != null) {
-                    Result.success(body.capsule)
+                val bodyText = response.body()
+                if (bodyText?.capsule != null) {
+                    Result.success(bodyText.capsule)
                 } else {
-                    val errMsg = body?.error ?: "Capsule is null"
-                    Log.e("CONTINUEX", "Error from body: $errMsg")
+                    val errMsg = bodyText?.error ?: "Capsule is null"
                     Result.failure(Exception(errMsg))
                 }
             } else {
                 val errorBody = response.errorBody()?.string() ?: "Unknown error"
-                Log.e("CONTINUEX", "API Error Body: $errorBody")
+                Result.failure(Exception("API Error ${response.code()}: $errorBody"))
+            }
+        } catch (e: Exception) {
+            Log.e("CONTINUEX", "Exception: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun generateResumePrompt(
+        capsuleText: String,
+        customApiKey: String? = null,
+        customProvider: String? = null,
+        customModel: String? = null
+    ): Result<String> {
+        return try {
+            val request = GenerateRequest(
+                chatText = capsuleText,
+                style = "brief",
+                customApiKey = if (!customApiKey.isNullOrEmpty()) customApiKey else null,
+                customProvider = if (!customApiKey.isNullOrEmpty()) customProvider else null,
+                customModel = if (!customApiKey.isNullOrEmpty()) customModel else null,
+                isResumePrompt = true
+            )
+            
+            val response = apiService.generateCapsule("api/generate", null, request)
+            
+            if (response.isSuccessful) {
+                val bodyText = response.body()
+                if (bodyText?.resumePrompt != null) {
+                    Result.success(bodyText.resumePrompt)
+                } else {
+                    val errMsg = bodyText?.error ?: "Resume prompt is null"
+                    Result.failure(Exception(errMsg))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string() ?: "Unknown error"
                 Result.failure(Exception("API Error ${response.code()}: $errorBody"))
             }
         } catch (e: Exception) {
