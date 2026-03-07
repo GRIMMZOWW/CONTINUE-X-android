@@ -117,13 +117,16 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
         )
         
+        val inputScrollState = rememberScrollState()
+        
         Box(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = chatText,
                 onValueChange = { viewModel.updateChatText(it) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 200.dp),
+                    .heightIn(min = 200.dp, max = 400.dp)
+                    .verticalScroll(inputScrollState),
                 placeholder = { Text("Paste your full AI conversation here...", color = TextGray) },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = CardBackground,
@@ -137,13 +140,44 @@ fun HomeScreen(
                 shape = RoundedCornerShape(12.dp)
             )
             
+            // Floating Scroll to Bottom Button
+            AnimatedVisibility(
+                visible = chatText.length > 500,
+                enter = androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 36.dp, end = 12.dp)
+            ) {
+                Surface(
+                    onClick = {
+                        coroutineScope.launch {
+                            inputScrollState.animateScrollTo(inputScrollState.maxValue)
+                        }
+                    },
+                    modifier = Modifier.size(32.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    color = AccentIndigo,
+                    tonalElevation = 4.dp
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Scroll to bottom",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
             Text(
                 text = "${chatText.length} chars",
                 color = TextGray,
                 fontSize = 10.sp,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(12.dp)
+                    .padding(bottom = 12.dp, end = 12.dp)
             )
         }
 
