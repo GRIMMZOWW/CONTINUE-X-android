@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -24,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import com.bhaumik.continuex.ui.screens.*
 import com.bhaumik.continuex.ui.theme.*
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Home
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,7 +85,6 @@ fun ContinueXApp() {
                                 drawerState.close()
                                 if (currentRoute != screen.route) {
                                     navController.navigate(screen.route) {
-                                        // Simple navigation for stability during hard fix
                                         launchSingleTop = true
                                         restoreState = true
                                     }

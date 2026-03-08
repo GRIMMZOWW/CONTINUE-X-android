@@ -74,6 +74,72 @@ fun HowItWorksContent(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(48.dp))
 
         Text(
+            text = "Why Not Just Copy-Paste?",
+            color = White,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+            textAlign = TextAlign.Start
+        )
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Raw Copy-Paste
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFFEF4444), RoundedCornerShape(12.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1a0a0a)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "❌ Raw Copy-Paste",
+                        color = Color(0xFFEF4444),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ComparisonItem("Dumps thousands of lines into new chat")
+                    ComparisonItem("AI gets confused by conversation format")
+                    ComparisonItem("Wastes your entire context window immediately")
+                    ComparisonItem("AI focuses on old messages not your current goal")
+                    ComparisonItem("Takes 10+ minutes to re-orient the AI")
+                    ComparisonItem("New AI has no idea what decisions were made")
+                }
+            }
+
+            // CONTINUE-X Capsule
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, Color(0xFF10B981), RoundedCornerShape(12.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0a1a0f)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text(
+                        text = "✅ CONTINUE-X Capsule",
+                        color = Color(0xFF10B981),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ComparisonItem("Sends only what matters — goal, state, next step")
+                    ComparisonItem("AI reads it instantly and understands everything")
+                    ComparisonItem("Context window saved for actual new work")
+                    ComparisonItem("AI starts exactly where you left off")
+                    ComparisonItem("Resume in under 30 seconds")
+                    ComparisonItem("All key decisions preserved and structured")
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(64.dp))
+
+        Text(
             text = "Works With Every AI Tool",
             color = TextGray,
             fontSize = 14.sp,
@@ -134,6 +200,17 @@ fun StepCard(number: String, title: String, description: String) {
             )
         }
     }
+}
+
+@Composable
+fun ComparisonItem(text: String) {
+    Text(
+        text = "• $text",
+        color = Color(0xFF94A3B8),
+        fontSize = 12.sp,
+        lineHeight = 18.sp,
+        modifier = Modifier.padding(bottom = 8.dp)
+    )
 }
 
 @Composable

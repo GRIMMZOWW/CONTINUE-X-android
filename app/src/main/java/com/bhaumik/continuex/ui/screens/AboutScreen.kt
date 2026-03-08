@@ -127,7 +127,57 @@ fun AboutContent(modifier: Modifier = Modifier) {
             }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // FOR TEAMS Section
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, CardBorder, RoundedCornerShape(12.dp)),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "FOR TEAMS",
+                    color = AccentIndigo,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Built for serious AI work",
+                    color = White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Whether you are a solo developer, a team using AI daily, or an enterprise — CONTINUE-X keeps your work moving without losing context.",
+                    color = TextGray,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                TeamCheckItem("No account needed — works instantly")
+                TeamCheckItem("Share capsules with teammates")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Stats Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            StatItem(number = "31,000+", label = "characters\ncompressed")
+            StatItem(number = "3", label = "capsule\nstyles")
+            StatItem(number = "0", label = "bytes\nstored")
+        }
+
+        Spacer(modifier = Modifier.height(48.dp))
 
         // GitHub Button
         Card(
@@ -416,6 +466,32 @@ fun AboutContent(modifier: Modifier = Modifier) {
         }
         
         Spacer(modifier = Modifier.height(48.dp))
+    }
+}
+
+@Composable
+fun TeamCheckItem(text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(bottom = 8.dp)
+    ) {
+        Text(text = "✓", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = text, color = TextGray, fontSize = 13.sp)
+    }
+}
+
+@Composable
+fun StatItem(number: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = number, color = White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = label,
+            color = TextGray,
+            fontSize = 10.sp,
+            textAlign = TextAlign.Center,
+            lineHeight = 14.sp
+        )
     }
 }
 
