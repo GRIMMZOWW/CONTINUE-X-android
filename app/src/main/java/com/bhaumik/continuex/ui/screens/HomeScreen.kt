@@ -72,13 +72,21 @@ fun HomeScreen(
                 )
             }
             
-            Text(
-                text = "CONTINUE-X",
-                color = AccentIndigo,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    painter = androidx.compose.ui.res.painterResource(id = com.bhaumik.continuex.R.mipmap.ic_launcher_foreground),
+                    contentDescription = "Logo",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(32.dp).padding(end = 8.dp)
+                )
+                Text(
+                    text = "CONTINUE-X",
+                    color = AccentIndigo,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+            }
             
             Box(modifier = Modifier.size(48.dp)) // Balance
         }

@@ -26,9 +26,11 @@ import com.bhaumik.continuex.ui.screens.*
 import com.bhaumik.continuex.ui.theme.*
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Home
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
@@ -69,12 +71,23 @@ fun ContinueXApp() {
                 modifier = Modifier.width(300.dp)
             ) {
                 Spacer(Modifier.height(48.dp))
-                Text(
-                    "CONTINUE-X",
-                    modifier = Modifier.padding(24.dp),
-                    color = AccentIndigo,
-                    style = MaterialTheme.typography.headlineMedium
-                )
+                Row(
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(id = com.bhaumik.continuex.R.mipmap.ic_launcher_foreground),
+                        contentDescription = "Logo",
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(40.dp).padding(end = 12.dp)
+                    )
+                    Text(
+                        "CONTINUE-X",
+                        color = AccentIndigo,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 items.forEach { screen ->
                     NavigationDrawerItem(
                         icon = { Icon(screen.icon, contentDescription = null) },
