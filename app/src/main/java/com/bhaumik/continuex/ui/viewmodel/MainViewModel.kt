@@ -65,7 +65,12 @@ class MainViewModel(
                 generateRemoteResumePrompt(capsule, customApiKey, customProvider, customModel)
             }
             result.onFailure { exception ->
-                _uiState.value = UiState.Error(exception.message ?: "An unexpected error occurred")
+                val errorMessage = when (exception) {
+                    is java.net.UnknownHostException -> "No internet connection. Please check your network."
+                    is java.net.SocketTimeoutException -> "Request timed out. Please try again."
+                    else -> exception.message ?: "An unexpected error occurred"
+                }
+                _uiState.value = UiState.Error(errorMessage)
             }
         }
     }

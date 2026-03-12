@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.bhaumik.continuex.ui.components.ErrorCard
 import com.bhaumik.continuex.ui.theme.*
 import com.bhaumik.continuex.ui.viewmodel.MainViewModel
 import com.bhaumik.continuex.ui.viewmodel.UiState
@@ -259,29 +260,30 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = CardBackground),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
-                ) {
-                    val content = when (val state = uiState) {
-                        is UiState.Success -> state.capsule
-                        is UiState.Error -> state.message
-                        else -> ""
+                if (uiState is UiState.Error) {
+                    ErrorCard(message = (uiState as UiState.Error).message)
+                } else if (uiState is UiState.Success) {
+                    val capsule = (uiState as UiState.Success).capsule
+                    if (capsule.isNotBlank()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = CardBackground),
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                        ) {
+                            Text(
+                                text = capsule,
+                                color = Color.White,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .fillMaxWidth()
+                                    .heightIn(max = 300.dp)
+                                    .verticalScroll(rememberScrollState())
+                            )
+                        }
                     }
-                    
-                    Text(
-                        text = content,
-                        color = if (uiState is UiState.Success) Color.White else Color.Red,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 13.sp,
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth()
-                            .heightIn(max = 300.dp)
-                            .verticalScroll(rememberScrollState())
-                    )
                 }
 
                 if (uiState is UiState.Success) {
@@ -297,7 +299,8 @@ fun HomeScreen(
                         // Download Button
                         Button(
                             onClick = {
-                                val capsuleText = (uiState as UiState.Success).capsule
+                                val capsuleText = (uiState as? UiState.Success)?.capsule ?: ""
+                                if (capsuleText.isBlank()) return@Button
                                 val filename = "continuex-capsule-${System.currentTimeMillis()}.txt"
                                 
                                 val contentValues = android.content.ContentValues().apply {
@@ -346,7 +349,9 @@ fun HomeScreen(
                         Button(
                             onClick = {
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText("Capsule", (uiState as UiState.Success).capsule)
+                                val capsuleText = (uiState as? UiState.Success)?.capsule ?: ""
+                                if (capsuleText.isBlank()) return@Button
+                                val clip = ClipData.newPlainText("Capsule", capsuleText)
                                 clipboard.setPrimaryClip(clip)
                                 copied = true
                                 Handler(Looper.getMainLooper()).postDelayed({ copied = false }, 2000)
@@ -367,9 +372,10 @@ fun HomeScreen(
 
                     // 7. Smart Resume Prompt Box
                     val resumePrompt by viewModel.resumePrompt.collectAsStateWithLifecycle()
+                    val isLoadingPrompt by viewModel.isLoadingPrompt.collectAsStateWithLifecycle()
                     
                     AnimatedVisibility(
-                        visible = resumePrompt.isNotBlank(),
+                        visible = resumePrompt.isNotBlank() || isLoadingPrompt,
                         enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(500)),
                         exit = androidx.compose.animation.fadeOut()
                     ) {
@@ -378,13 +384,23 @@ fun HomeScreen(
                                 .fillMaxWidth()
                                 .padding(top = 24.dp)
                         ) {
-                            Text(
-                                text = "SMART RESUME PROMPT \u2728",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "SMART RESUME PROMPT \u2728",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                                if (isLoadingPrompt) {
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    CircularProgressIndicator(
+                                        color = AccentIndigo,
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                }
+                            }
                             Text(
                                 text = "Paste this into your new AI chat",
                                 color = TextGray,

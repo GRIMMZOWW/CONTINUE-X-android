@@ -1,6 +1,5 @@
 package com.bhaumik.continuex.data.repository
 
-import android.util.Log
 import com.google.gson.Gson
 import com.bhaumik.continuex.data.api.ApiService
 import com.bhaumik.continuex.data.api.GenerateRequest
@@ -32,26 +31,20 @@ class CapsuleRepository(
                 customModel = if (!customApiKey.isNullOrEmpty()) customModel else null
             )
             
-            Log.d("CONTINUEX", "Sending request with style: ${request.style}")
-            Log.d("CONTINUEX", "Using custom key: ${!customApiKey.isNullOrEmpty()}")
             
             val response = apiService.generateCapsule("api/generate", null, request)
-            Log.d("CONTINUEX", "Response code: ${response.code()}")
             
             if (response.isSuccessful) {
                 val bodyText = response.body()
                 if (bodyText?.capsule != null) {
                     Result.success(bodyText.capsule)
                 } else {
-                    val errMsg = bodyText?.error ?: "Capsule is null"
-                    Result.failure(Exception(errMsg))
+                    Result.failure(Exception("Failed to generate capsule. Please try again."))
                 }
             } else {
-                val errorBody = response.errorBody()?.string() ?: "Unknown error"
-                Result.failure(Exception("API Error ${response.code()}: $errorBody"))
+                Result.failure(Exception("Service is currently unavailable. Please verify your connection or API key."))
             }
         } catch (e: Exception) {
-            Log.e("CONTINUEX", "Exception: ${e.message}", e)
             Result.failure(e)
         }
     }
@@ -79,15 +72,12 @@ class CapsuleRepository(
                 if (bodyText?.resumePrompt != null) {
                     Result.success(bodyText.resumePrompt)
                 } else {
-                    val errMsg = bodyText?.error ?: "Resume prompt is null"
-                    Result.failure(Exception(errMsg))
+                    Result.failure(Exception("Failed to generate resume prompt."))
                 }
             } else {
-                val errorBody = response.errorBody()?.string() ?: "Unknown error"
-                Result.failure(Exception("API Error ${response.code()}: $errorBody"))
+                Result.failure(Exception("Failed to connect to the server."))
             }
         } catch (e: Exception) {
-            Log.e("CONTINUEX", "Exception: ${e.message}", e)
             Result.failure(e)
         }
     }
